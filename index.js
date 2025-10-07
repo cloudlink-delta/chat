@@ -5,7 +5,7 @@
 // License: MIT
 
 /*
-	CloudLink Delta Chat Extension
+	CloudLink Delta Chat Plugin
 
 	MIT License
 
@@ -42,15 +42,42 @@
 	// Require the extension to be unsandboxed
 	if (!Scratch.extensions.unsandboxed) {
 		alert("The CloudLink Delta Chat extension must be loaded in an unsandboxed environment.");
+		return;
 	}
 
-	if (!Scratch.vm.runtime.ext_cldelta_core) {
+	// Require access to the VM and/or runtime
+	if (!Scratch.vm || !Scratch.vm.runtime) {
+		alert(
+			"The CloudLink Delta extension could not detect access to the Scratch VM and/or runtime; this extension won't work."
+		);
+		return;
+	}
+
+	// Require browser to support Web Locks API (used for concurrency)
+	if (!navigator.locks) {
+		alert(
+			"The CloudLink Delta extension could not detect Web Locks support; this extension won't work."
+		);
+		return;
+	}
+
+	// Require core extension to be loaded
+	const core = Scratch.vm.runtime.ext_cldelta_core;
+	if (!core) {
 		alert(
 			"The CloudLink Delta Chat extension could not detect the CloudLink Delta Core extension; please load it first."
 		);
+		return;
 	}
 
 	class CloudLinkDelta_Chat {
+		constructor() {
+			this.ringingPeers = new Map();
+			this.voiceConnections = new Map();
+			this.hasMicPerms = false;
+			this.myVoiceStream;
+		}
+
 		getInfo() {
 			return {
 				id: "cldeltachat",
@@ -58,13 +85,176 @@
 				menuIconURI: menuIcon,
 				blockIconURI: blockIcon,
 				color1: "#0F7EBD",
-				blocks: [],
+				blocks: [
+					{
+						opcode: "whenPeerRings",
+						blockType: Scratch.BlockType.HAT,
+						isEdgeActivated: false,
+						text: Scratch.translate("when peer [ID] calls me"),
+						arguments: {
+							ID: {
+								type: Scratch.ArgumentType.STRING,
+								defaultValue: "B",
+							},
+						},
+					},
+					{
+						opcode: "doIHaveMicPerms",
+						blockType: Scratch.BlockType.BOOLEAN,
+						text: Scratch.translate("microphone available?"),
+					},
+					{
+						opcode: "requestMicPerms",
+						blockType: Scratch.BlockType.COMMAND,
+						text: Scratch.translate("request microphone access"),
+					},
+					{
+						opcode: "callPeer",
+						blockType: Scratch.BlockType.COMMAND,
+						text: Scratch.translate("call peer [ID]"),
+						arguments: {
+							ID: {
+								type: Scratch.ArgumentType.STRING,
+								defaultValue: "B",
+							},
+						},
+					},
+					{
+						opcode: "answerPeer",
+						blockType: Scratch.BlockType.COMMAND,
+						text: Scratch.translate("accept incoming call from peer [ID]"),
+						arguments: {
+							ID: {
+								type: Scratch.ArgumentType.STRING,
+								defaultValue: "B",
+							},
+						},
+					},
+					{
+						opcode: "hangupPeerCall",
+						blockType: Scratch.BlockType.COMMAND,
+						text: Scratch.translate("hangup or decline call from peer [ID]"),
+						arguments: {
+							ID: {
+								type: Scratch.ArgumentType.STRING,
+								defaultValue: "B",
+							},
+						},
+					},
+				],
 				menus: {},
 			};
-		};
+		}
+
+		_callHandler(call) {
+			if (!this.hasMicPerms || this.voiceConnections.has(call.peer)) {
+				call.close();
+				return;
+			}
+			this.ringingPeers.set(call.peer, call);
+			this.handleCall(call.peer, call);
+			Scratch.vm.runtime.startHats("cldeltachat_whenPeerRings");
+		}
+
+		whenPeerRings({ ID }) {
+			ID = Scratch.Cast.toString(ID);
+			return core.isOtherPeerConnected({ ID });
+		}
+
+		doIHaveMicPerms() {
+			return this.hasMicPerms;
+		}
+
+		async requestMicPerms() {
+			if (this.hasMicPerms || this.myVoiceStream) return;
+			if (await Scratch.canRecordAudio()) {
+				await navigator.mediaDevices
+					.getUserMedia({ audio: true })
+					.then((stream) => {
+						this.myVoiceStream = stream;
+						this.hasMicPerms = true;
+					})
+					.catch((e) => {
+						console.warn(`Failed to get microphone permission. ${e}`);
+						this.hasMicPerms = false;
+					});
+			}
+		}
+
+		async callPeer({ ID }) {
+			ID = Scratch.Cast.toString(ID);
+			if (!core.isPeerConnected()) return;
+			if (!core.dataConnections.has(ID)) return;
+			if (!this.hasMicPerms) {
+				await this.requestMicPerms();
+				if (!this.hasMicPerms) return;
+			}
+			if (core.voiceConnections.has(ID)) return;
+			const lock_id = "cldeltachat_" + ID + "_call";
+			await navigator.locks.request(
+				lock_id,
+				{ ifAvailable: true },
+				async () => {
+					const call = await core.peer.call(ID, this.myVoiceStream);
+					core.handleCall(ID, call);
+				}
+			);
+		}
+
+		hangupPeerCall({ ID }) {
+			ID = Scratch.Cast.toString(ID);
+			if (this.voiceConnections.has(ID))
+				this.voiceConnections.get(ID).call.close();
+		}
+
+		async answerPeer({ ID }) {
+			ID = Scratch.Cast.toString(ID);
+			if (!core.peer) return;
+			if (!this.hasMicPerms) {
+				await this.requestMicPerms();
+				if (!this.hasMicPerms) return;
+			}
+			if (!this.ringingPeers.has(ID)) return;
+			const call = this.ringingPeers.get(ID);
+			const lock_id = "cldelta_" + ID + "_call";
+			await navigator.locks.request(
+				lock_id,
+				{ ifAvailable: true },
+				async () => {
+					call.answer(this.myVoiceStream);
+					this.handleCall(ID, call);
+				}
+			);
+		}
+
+		handleCall(id, call) {
+			call.on("stream", (remoteStream) => {
+				if (this.ringingPeers.has(id)) this.ringingPeers.delete(id);
+				const audio = document.createElement("audio");
+				audio.srcObject = remoteStream;
+				audio.autoplay = true;
+				this.voiceConnections.set(id, {
+					call: call,
+					audio: audio,
+				});
+				audio.play();
+			});
+
+			call.on("close", () => {
+				if (this.ringingPeers.has(id)) {
+					this.ringingPeers.delete(id);
+				} else {
+					this.voiceConnections.delete(id);
+				}
+			});
+
+			call.on("error", (err) => {
+				console.warn("Call with peer " + id + " error: " + err);
+			});
+		}
 	}
 
-	// Register the extension
+	// Register the plugin
 	const chat = new CloudLinkDelta_Chat();
 	Scratch.extensions.register(chat);
 	Scratch.vm.runtime.ext_cldelta_chat = chat;
