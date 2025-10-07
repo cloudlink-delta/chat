@@ -258,4 +258,5 @@
 	const chat = new CloudLinkDelta_Chat();
 	Scratch.extensions.register(chat);
 	Scratch.vm.runtime.ext_cldelta_chat = chat;
+	console.log("CLΔ Chat plugin loaded.");
 })(Scratch);
