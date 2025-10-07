@@ -5,7 +5,7 @@
 // License: MIT
 
 /*
-	CloudLink Delta Core Extension
+	CloudLink Delta Chat Extension
 
 	MIT License
 
@@ -41,28 +41,7 @@
 
 	// Require the extension to be unsandboxed
 	if (!Scratch.extensions.unsandboxed) {
-		alert("The CloudLink Delta extension must be loaded in an unsandboxed environment.");
-	}
-
-	// Require access to the VM and/or runtime
-	if (!Scratch.vm || !Scratch.vm.runtime) {
-		alert(
-			"The CloudLink Delta extension could not detect access to the Scratch VM and/or runtime."
-		);
-	}
-
-	// Require the browser to support WebRTC (used for connectivity)
-	if (!RTCPeerConnection) {
-		alert(
-			"The CloudLink Delta extension could not detect WebRTC support; this extension won't work properly."
-		);
-	}
-
-	// Require browser to support Web Locks API (used for concurrency)
-	if (!navigator.locks) {
-		alert(
-			"The CloudLink Delta extension could not detect Web Locks support; this extension won't work properly."
-		);
+		alert("The CloudLink Delta Chat extension must be loaded in an unsandboxed environment.");
 	}
 
 	if (!Scratch.vm.runtime.ext_cldelta_core) {
