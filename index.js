@@ -39,16 +39,16 @@
 		"data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzczIiBoZWlnaHQ9IjM3MyIgdmlld0JveD0iMCAwIDM3MyAzNzMiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxjaXJjbGUgY3g9IjE4Ni41IiBjeT0iMTg2LjUiIHI9IjE4Ni41IiBmaWxsPSIjMEY3RUJEIi8+CjxwYXRoIGQ9Ik0xODYuODggNjFDMjI1LjgyOSA2MS4wMDAyIDI1Ny43ODYgOTEuMTA4NCAyNjAuOTg3IDEyOS40NDFIMjY4LjM5MUMzMDkuNDY2IDEyOS40NDEgMzQyLjc1OSAxNjIuOTIyIDM0Mi43NTkgMjA0LjIyMUMzNDIuNzU5IDI0NS41MiAzMDkuNDY2IDI3OSAyNjguMzkxIDI3OUgxMDUuMzY4QzY0LjI5MzQgMjc5IDMxIDI0NS41MiAzMSAyMDQuMjIxQzMxLjAwMDEgMTYyLjkyMiA2NC4yOTM1IDEyOS40NDIgMTA1LjM2OCAxMjkuNDQxSDExMi43NzJDMTE1Ljk3MyA5MS4xMDgyIDE0Ny45MzEgNjEgMTg2Ljg4IDYxWk0xODYuODggNzFDMTUzLjIyMSA3MSAxMjUuNTE0IDk3LjAzMzUgMTIyLjczNyAxMzAuMjc0TDEyMS45NzIgMTM5LjQ0MUgxMDUuMzY4QzY5Ljg2ODQgMTM5LjQ0MiA0MS4wMDAxIDE2OC4zOTIgNDEgMjA0LjIyMUM0MSAyNDAuMDQ5IDY5Ljg2ODMgMjY5IDEwNS4zNjggMjY5SDI2OC4zOTFDMzAzLjg5MSAyNjkgMzMyLjc1OSAyNDAuMDQ5IDMzMi43NTkgMjA0LjIyMUMzMzIuNzU5IDE2OC4zOTIgMzAzLjg5MSAxMzkuNDQxIDI2OC4zOTEgMTM5LjQ0MUgyNTEuNzg4TDI1MS4wMjMgMTMwLjI3NEMyNDguMjQ2IDk3LjAzMzcgMjIwLjUzOSA3MS4wMDAyIDE4Ni44OCA3MVoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNDAuNSAyNDFWMjMzLjVMMTgwLjg1IDEzMy40NUgxOTNMMjMzLjIgMjMzLjVWMjQxSDE0MC41Wk0xNTUuOTUgMjI4Ljg1SDIxNy42TDE5Mi41NSAxNjMuNDVDMTkyLjI1IDE2Mi42NSAxOTEuNyAxNjEuMiAxOTAuOSAxNTkuMUMxOTAuMSAxNTcgMTg5LjMgMTU0Ljg1IDE4OC41IDE1Mi42NUMxODcuOCAxNTAuMzUgMTg3LjI1IDE0OC42IDE4Ni44NSAxNDcuNEMxODYuMzUgMTQ5LjQgMTg1Ljc1IDE1MS40NSAxODUuMDUgMTUzLjU1QzE4NC40NSAxNTUuNTUgMTgzLjggMTU3LjQgMTgzLjEgMTU5LjFDMTgyLjUgMTYwLjggMTgyIDE2Mi4yNSAxODEuNiAxNjMuNDVMMTU1Ljk1IDIyOC44NVoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=";
 
 
-	// Require the extension to be unsandboxed
+	// Require the plugin to be unsandboxed
 	if (!Scratch.extensions.unsandboxed) {
-		alert("The CloudLink Delta Chat extension must be loaded in an unsandboxed environment.");
+		alert("The CloudLink Delta Chat plugin must be loaded in an unsandboxed environment.");
 		return;
 	}
 
 	// Require access to the VM and/or runtime
 	if (!Scratch.vm || !Scratch.vm.runtime) {
 		alert(
-			"The CloudLink Delta extension could not detect access to the Scratch VM and/or runtime; this extension won't work."
+			"The CloudLink Delta Chat plugin could not detect access to the Scratch VM and/or runtime; this plugin won't work."
 		);
 		return;
 	}
@@ -56,7 +56,7 @@
 	// Require browser to support Web Locks API (used for concurrency)
 	if (!navigator.locks) {
 		alert(
-			"The CloudLink Delta extension could not detect Web Locks support; this extension won't work."
+			"The CloudLink Delta Chat plugin could not detect Web Locks support; this plugin won't work."
 		);
 		return;
 	}
@@ -65,7 +65,7 @@
 	const core = Scratch.vm.runtime.ext_cldelta_core;
 	if (!core) {
 		alert(
-			"The CloudLink Delta Chat extension could not detect the CloudLink Delta Core extension; please load it first."
+			"The CloudLink Delta Chat plugin could not detect the CloudLink Delta Core extension; please load it first."
 		);
 		return;
 	}
@@ -196,7 +196,7 @@
 				{ ifAvailable: true },
 				async () => {
 					const call = await core.peer.call(ID, this.myVoiceStream);
-					core.handleCall(ID, call);
+					this.handleCall(ID, call);
 				}
 			);
 		}
