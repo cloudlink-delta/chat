@@ -87,6 +87,32 @@
 				color1: "#0F7EBD",
 				blocks: [
 					{
+						blockType: Scratch.BlockType.LABEL,
+						text: "Control",
+					},
+					{
+						opcode: "doPeer",
+						blockType: Scratch.BlockType.COMMAND,
+						text: Scratch.translate("[REQUEST] peer [ID]"),
+						arguments: {
+							REQUEST: {
+								menu: "request",
+								acceptReporters: false,
+								type: Scratch.ArgumentType.NUMBER,
+								defaultValue: "call",
+							},
+							ID: {
+								type: Scratch.ArgumentType.STRING,
+								defaultValue: "B",
+							},
+						},
+					},
+					"---",
+					{
+						blockType: Scratch.BlockType.LABEL,
+						text: "Ringer",
+					},
+					{
 						opcode: "whenPeerRings",
 						blockType: Scratch.BlockType.HAT,
 						isEdgeActivated: false,
@@ -99,6 +125,22 @@
 						},
 					},
 					{
+						opcode: "onPeerRing",
+						blockType: Scratch.BlockType.EVENT,
+						isEdgeActivated: false,
+						text: Scratch.translate("when I get an incoming call"),
+					},
+					{
+						opcode: "newestIncomingCallID",
+						blockType: Scratch.BlockType.REPORTER,
+						text: Scratch.translate("newest incoming call peer ID"),
+					},
+					"---",
+					{
+						blockType: Scratch.BlockType.LABEL,
+						text: "Microphone",
+					},
+					{
 						opcode: "doIHaveMicPerms",
 						blockType: Scratch.BlockType.BOOLEAN,
 						text: Scratch.translate("microphone available?"),
@@ -108,41 +150,17 @@
 						blockType: Scratch.BlockType.COMMAND,
 						text: Scratch.translate("request microphone access"),
 					},
-					{
-						opcode: "callPeer",
-						blockType: Scratch.BlockType.COMMAND,
-						text: Scratch.translate("call peer [ID]"),
-						arguments: {
-							ID: {
-								type: Scratch.ArgumentType.STRING,
-								defaultValue: "B",
-							},
-						},
-					},
-					{
-						opcode: "answerPeer",
-						blockType: Scratch.BlockType.COMMAND,
-						text: Scratch.translate("accept incoming call from peer [ID]"),
-						arguments: {
-							ID: {
-								type: Scratch.ArgumentType.STRING,
-								defaultValue: "B",
-							},
-						},
-					},
-					{
-						opcode: "hangupPeerCall",
-						blockType: Scratch.BlockType.COMMAND,
-						text: Scratch.translate("hangup or decline call from peer [ID]"),
-						arguments: {
-							ID: {
-								type: Scratch.ArgumentType.STRING,
-								defaultValue: "B",
-							},
-						},
-					},
 				],
-				menus: {},
+				menus: {
+					request: {
+						items: [
+							{ text: Scratch.translate("call"), value: 0 },
+							{ text: Scratch.translate("answer"), value: 1 },
+							{ text: Scratch.translate("decline"), value: 2 },
+							{ text: Scratch.translate("hangup"), value: 3 },
+						],
+					},
+				},
 			};
 		}
 
@@ -181,7 +199,31 @@
 			}
 		}
 
-		async callPeer({ ID }) {
+		async doPeer({REQUEST, ID}) {
+			const req = Scratch.Cast.toNumber(REQUEST);
+			const id = Scratch.Cast.toString(ID);
+
+			switch (req) {
+				case 0:
+					console.log("Calling peer " + id);
+					await this.callPeer(id);
+					break;
+				case 1:
+					console.log("Answering peer " + id);
+					await this.answerPeer(id);
+					break;
+				case 2:
+					console.log("Declining peer " + id);
+					await this.declinePeer(id);
+					break;
+				case 3:
+					console.log("Hanging up peer " + id);
+					this.hangupPeerCall(id);
+					break;
+			}
+		}
+
+		async callPeer(ID) {
 			ID = Scratch.Cast.toString(ID);
 			if (!core.isPeerConnected()) return;
 			if (!core.dataConnections.has(ID)) return;
@@ -201,13 +243,13 @@
 			);
 		}
 
-		hangupPeerCall({ ID }) {
+		hangupPeerCall(ID) {
 			ID = Scratch.Cast.toString(ID);
 			if (this.voiceConnections.has(ID))
 				this.voiceConnections.get(ID).call.close();
 		}
 
-		async answerPeer({ ID }) {
+		async answerPeer(ID) {
 			ID = Scratch.Cast.toString(ID);
 			if (!core.peer) return;
 			if (!this.hasMicPerms) {
