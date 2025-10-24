@@ -237,7 +237,12 @@
 				lock_id,
 				{ ifAvailable: true },
 				async () => {
-					const call = await core.peer.call(ID, this.myVoiceStream);
+					const call = await core.peer.call(ID, this.myVoiceStream, {
+						metadata: {
+							name: core.name,
+							protocol: "delta", // REQUIRED
+						},
+					});
 					this.handleCall(ID, call);
 				}
 			);
