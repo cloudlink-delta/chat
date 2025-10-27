@@ -30,286 +30,356 @@
 	SOFTWARE.
 */
 
-(function (Scratch) {
-	"use strict";
-	const blockIcon =
-		"data:image/svg+xml;charset=utf-8,%3Csvg%20width%3D%22312%22%20height%3D%22218%22%20viewBox%3D%220%200%20312%20218%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M155.88%200C194.829%200.000212318%20226.786%2030.1084%20229.987%2068.4414H237.391C278.466%2068.4414%20311.759%20101.922%20311.759%20143.221C311.759%20184.52%20278.466%20218%20237.391%20218H74.3682C33.2934%20218%200%20184.52%200%20143.221C0.000123011%20101.922%2033.2935%2068.4415%2074.3682%2068.4414H81.7715C84.9733%2030.1082%20116.931%200%20155.88%200ZM155.88%2010C122.221%2010%2094.5136%2036.0335%2091.7373%2069.2744L90.9717%2078.4414H74.3682C38.8684%2078.4415%2010.0001%20107.392%2010%20143.221C10%20179.049%2038.8683%20208%2074.3682%20208H237.391C272.891%20208%20301.759%20179.049%20301.759%20143.221C301.759%20107.392%20272.891%2078.4414%20237.391%2078.4414H220.788L220.023%2069.2744C217.246%2036.0337%20189.539%2010.0002%20155.88%2010Z%22%20fill%3D%22white%22%2F%3E%3Cpath%20d%3D%22M109.5%20180V172.5L149.85%2072.4502H162L202.2%20172.5V180H109.5ZM124.95%20167.85H186.6L161.55%20102.45C161.25%20101.65%20160.7%20100.2%20159.9%2098.1002C159.1%2096.0002%20158.3%2093.8502%20157.5%2091.6502C156.8%2089.3502%20156.25%2087.6002%20155.85%2086.4002C155.35%2088.4002%20154.75%2090.4502%20154.05%2092.5502C153.45%2094.5502%20152.8%2096.4002%20152.1%2098.1002C151.5%2099.8002%20151%20101.25%20150.6%20102.45L124.95%20167.85Z%22%20fill%3D%22white%22%2F%3E%3C%2Fsvg%3E";
+;(function (Scratch) {
+  'use strict'
+  const blockIcon =
+    'data:image/svg+xml;charset=utf-8,%3Csvg%20width%3D%22312%22%20height%3D%22218%22%20viewBox%3D%220%200%20312%20218%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M155.88%200C194.829%200.000212318%20226.786%2030.1084%20229.987%2068.4414H237.391C278.466%2068.4414%20311.759%20101.922%20311.759%20143.221C311.759%20184.52%20278.466%20218%20237.391%20218H74.3682C33.2934%20218%200%20184.52%200%20143.221C0.000123011%20101.922%2033.2935%2068.4415%2074.3682%2068.4414H81.7715C84.9733%2030.1082%20116.931%200%20155.88%200ZM155.88%2010C122.221%2010%2094.5136%2036.0335%2091.7373%2069.2744L90.9717%2078.4414H74.3682C38.8684%2078.4415%2010.0001%20107.392%2010%20143.221C10%20179.049%2038.8683%20208%2074.3682%20208H237.391C272.891%20208%20301.759%20179.049%20301.759%20143.221C301.759%20107.392%20272.891%2078.4414%20237.391%2078.4414H220.788L220.023%2069.2744C217.246%2036.0337%20189.539%2010.0002%20155.88%2010Z%22%20fill%3D%22white%22%2F%3E%3Cpath%20d%3D%22M109.5%20180V172.5L149.85%2072.4502H162L202.2%20172.5V180H109.5ZM124.95%20167.85H186.6L161.55%20102.45C161.25%20101.65%20160.7%20100.2%20159.9%2098.1002C159.1%2096.0002%20158.3%2093.8502%20157.5%2091.6502C156.8%2089.3502%20156.25%2087.6002%20155.85%2086.4002C155.35%2088.4002%20154.75%2090.4502%20154.05%2092.5502C153.45%2094.5502%20152.8%2096.4002%20152.1%2098.1002C151.5%2099.8002%20151%20101.25%20150.6%20102.45L124.95%20167.85Z%22%20fill%3D%22white%22%2F%3E%3C%2Fsvg%3E'
 
-	const menuIcon =
-		"data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzczIiBoZWlnaHQ9IjM3MyIgdmlld0JveD0iMCAwIDM3MyAzNzMiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxjaXJjbGUgY3g9IjE4Ni41IiBjeT0iMTg2LjUiIHI9IjE4Ni41IiBmaWxsPSIjMEY3RUJEIi8+CjxwYXRoIGQ9Ik0xODYuODggNjFDMjI1LjgyOSA2MS4wMDAyIDI1Ny43ODYgOTEuMTA4NCAyNjAuOTg3IDEyOS40NDFIMjY4LjM5MUMzMDkuNDY2IDEyOS40NDEgMzQyLjc1OSAxNjIuOTIyIDM0Mi43NTkgMjA0LjIyMUMzNDIuNzU5IDI0NS41MiAzMDkuNDY2IDI3OSAyNjguMzkxIDI3OUgxMDUuMzY4QzY0LjI5MzQgMjc5IDMxIDI0NS41MiAzMSAyMDQuMjIxQzMxLjAwMDEgMTYyLjkyMiA2NC4yOTM1IDEyOS40NDIgMTA1LjM2OCAxMjkuNDQxSDExMi43NzJDMTE1Ljk3MyA5MS4xMDgyIDE0Ny45MzEgNjEgMTg2Ljg4IDYxWk0xODYuODggNzFDMTUzLjIyMSA3MSAxMjUuNTE0IDk3LjAzMzUgMTIyLjczNyAxMzAuMjc0TDEyMS45NzIgMTM5LjQ0MUgxMDUuMzY4QzY5Ljg2ODQgMTM5LjQ0MiA0MS4wMDAxIDE2OC4zOTIgNDEgMjA0LjIyMUM0MSAyNDAuMDQ5IDY5Ljg2ODMgMjY5IDEwNS4zNjggMjY5SDI2OC4zOTFDMzAzLjg5MSAyNjkgMzMyLjc1OSAyNDAuMDQ5IDMzMi43NTkgMjA0LjIyMUMzMzIuNzU5IDE2OC4zOTIgMzAzLjg5MSAxMzkuNDQxIDI2OC4zOTEgMTM5LjQ0MUgyNTEuNzg4TDI1MS4wMjMgMTMwLjI3NEMyNDguMjQ2IDk3LjAzMzcgMjIwLjUzOSA3MS4wMDAyIDE4Ni44OCA3MVoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNDAuNSAyNDFWMjMzLjVMMTgwLjg1IDEzMy40NUgxOTNMMjMzLjIgMjMzLjVWMjQxSDE0MC41Wk0xNTUuOTUgMjI4Ljg1SDIxNy42TDE5Mi41NSAxNjMuNDVDMTkyLjI1IDE2Mi42NSAxOTEuNyAxNjEuMiAxOTAuOSAxNTkuMUMxOTAuMSAxNTcgMTg5LjMgMTU0Ljg1IDE4OC41IDE1Mi42NUMxODcuOCAxNTAuMzUgMTg3LjI1IDE0OC42IDE4Ni44NSAxNDcuNEMxODYuMzUgMTQ5LjQgMTg1Ljc1IDE1MS40NSAxODUuMDUgMTUzLjU1QzE4NC40NSAxNTUuNTUgMTgzLjggMTU3LjQgMTgzLjEgMTU5LjFDMTgyLjUgMTYwLjggMTgyIDE2Mi4yNSAxODEuNiAxNjMuNDVMMTU1Ljk1IDIyOC44NVoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=";
+  const menuIcon =
+    'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzczIiBoZWlnaHQ9IjM3MyIgdmlld0JveD0iMCAwIDM3MyAzNzMiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxjaXJjbGUgY3g9IjE4Ni41IiBjeT0iMTg2LjUiIHI9IjE4Ni41IiBmaWxsPSIjMEY3RUJEIi8+CjxwYXRoIGQ9Ik0xODYuODggNjFDMjI1LjgyOSA2MS4wMDAyIDI1Ny43ODYgOTEuMTA4NCAyNjAuOTg3IDEyOS40NDFIMjY4LjM5MUMzMDkuNDY2IDEyOS40NDEgMzQyLjc1OSAxNjIuOTIyIDM0Mi43NTkgMjA0LjIyMUMzNDIuNzU5IDI0NS41MiAzMDkuNDY2IDI3OSAyNjguMzkxIDI3OUgxMDUuMzY4QzY0LjI5MzQgMjc5IDMxIDI0NS41MiAzMSAyMDQuMjIxQzMxLjAwMDEgMTYyLjkyMiA2NC4yOTM1IDEyOS40NDIgMTA1LjM2OCAxMjkuNDQxSDExMi43NzJDMTE1Ljk3MyA5MS4xMDgyIDE0Ny45MzEgNjEgMTg2Ljg4IDYxWk0xODYuODggNzFDMTUzLjIyMSA3MSAxMjUuNTE0IDk3LjAzMzUgMTIyLjczNyAxMzAuMjc0TDEyMS45NzIgMTM5LjQ0MUgxMDUuMzY4QzY5Ljg2ODQgMTM5LjQ0MiA0MS4wMDAxIDE2OC4zOTIgNDEgMjA0LjIyMUM0MSAyNDAuMDQ5IDY5Ljg2ODMgMjY5IDEwNS4zNjggMjY5SDI2OC4zOTFDMzAzLjg5MSAyNjkgMzMyLjc1OSAyNDAuMDQ5IDMzMi43NTkgMjA0LjIyMUMzMzIuNzU5IDE2OC4zOTIgMzAzLjg5MSAxMzkuNDQxIDI2OC4zOTEgMTM5LjQ0MUgyNTEuNzg4TDI1MS4wMjMgMTMwLjI3NEMyNDguMjQ2IDk3LjAzMzcgMjIwLjUzOSA3MS4wMDAyIDE4Ni44OCA3MVoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNDAuNSAyNDFWMjMzLjVMMTgwLjg1IDEzMy40NUgxOTNMMjMzLjIgMjMzLjVWMjQxSDE0MC41Wk0xNTUuOTUgMjI4Ljg1SDIxNy42TDE5Mi41NSAxNjMuNDVDMTkyLjI1IDE2Mi42NSAxOTEuNyAxNjEuMiAxOTAuOSAxNTkuMUMxOTAuMSAxNTcgMTg5LjMgMTU0Ljg1IDE4OC41IDE1Mi42NUMxODcuOCAxNTAuMzUgMTg3LjI1IDE0OC42IDE4Ni44NSAxNDcuNEMxODYuMzUgMTQ5LjQgMTg1Ljc1IDE1MS40NSAxODUuMDUgMTUzLjU1QzE4NC40NSAxNTUuNTUgMTgzLjggMTU3LjQgMTgzLjEgMTU5LjFDMTgyLjUgMTYwLjggMTgyIDE2Mi4yNSAxODEuNiAxNjMuNDVMMTU1Ljk1IDIyOC44NVoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo='
 
+  // Require the plugin to be unsandboxed
+  if (!Scratch.extensions.unsandboxed) {
+    alert(
+      'The CloudLink Delta Chat plugin must be loaded in an unsandboxed environment.'
+    )
+    return
+  }
 
-	// Require the plugin to be unsandboxed
-	if (!Scratch.extensions.unsandboxed) {
-		alert("The CloudLink Delta Chat plugin must be loaded in an unsandboxed environment.");
-		return;
-	}
+  // Require access to the VM and/or runtime
+  if (!Scratch.vm || !Scratch.vm.runtime) {
+    alert(
+      "The CloudLink Delta Chat plugin could not detect access to the Scratch VM and/or runtime; this plugin won't work."
+    )
+    return
+  }
 
-	// Require access to the VM and/or runtime
-	if (!Scratch.vm || !Scratch.vm.runtime) {
-		alert(
-			"The CloudLink Delta Chat plugin could not detect access to the Scratch VM and/or runtime; this plugin won't work."
-		);
-		return;
-	}
+  // Require browser to support Web Locks API (used for concurrency)
+  if (!navigator.locks) {
+    alert(
+      "The CloudLink Delta Chat plugin could not detect Web Locks support; this plugin won't work."
+    )
+    return
+  }
 
-	// Require browser to support Web Locks API (used for concurrency)
-	if (!navigator.locks) {
-		alert(
-			"The CloudLink Delta Chat plugin could not detect Web Locks support; this plugin won't work."
-		);
-		return;
-	}
+  // Initialize the plugin loader
+  if (!Scratch.vm.runtime.ext_cldelta_pluginloader) {
+    Scratch.vm.runtime.ext_cldelta_pluginloader = new Array()
+  }
 
-	// Require core extension to be loaded
-	const core = Scratch.vm.runtime.ext_cldelta_core;
-	if (!core) {
-		alert(
-			"The CloudLink Delta Chat plugin could not detect the CloudLink Delta Core extension; please load it first."
-		);
-		return;
-	}
+  /*
+		Block utilities for creating blocks with less code.
+		Based on Rotur.js by Mistium
+		https://extensions.mistium.com/featured/Rotur.js
 
-	class CloudLinkDelta_Chat {
-		constructor() {
-			this.ringingPeers = new Map();
-			this.voiceConnections = new Map();
-			this.hasMicPerms = false;
-			this.myVoiceStream;
-		}
+		MPL-2.0
+		This Source Code is subject to the terms of the Mozilla Public License, v2.0,
+		If a copy of the MPL was not distributed with this file,
+		Then you can obtain one at https://mozilla.org/MPL/2.0/
+	*/
+  // Defines a set of block types
+  const opcodes = {
+    conditional: (opcode, text, options = {}) => ({
+      opcode,
+      text: text.map(v => Scratch.translate(v)),
+      blockType: Scratch.BlockType.CONDITIONAL,
+      branchCount: text.length - 1,
+      ...options
+    }),
 
-		getInfo() {
-			return {
-				id: "cldeltachat",
-				name: "CLΔ Chat",
-				menuIconURI: menuIcon,
-				blockIconURI: blockIcon,
-				color1: "#0F7EBD",
-				blocks: [
-					{
-						blockType: Scratch.BlockType.LABEL,
-						text: "Control",
-					},
-					{
-						opcode: "doPeer",
-						blockType: Scratch.BlockType.COMMAND,
-						text: Scratch.translate("[REQUEST] peer [ID]"),
-						arguments: {
-							REQUEST: {
-								menu: "request",
-								acceptReporters: false,
-								type: Scratch.ArgumentType.NUMBER,
-								defaultValue: "call",
-							},
-							ID: {
-								type: Scratch.ArgumentType.STRING,
-								defaultValue: "B",
-							},
-						},
-					},
-					"---",
-					{
-						blockType: Scratch.BlockType.LABEL,
-						text: "Ringer",
-					},
-					{
-						opcode: "whenPeerRings",
-						blockType: Scratch.BlockType.HAT,
-						isEdgeActivated: false,
-						text: Scratch.translate("when peer [ID] calls me"),
-						arguments: {
-							ID: {
-								type: Scratch.ArgumentType.STRING,
-								defaultValue: "B",
-							},
-						},
-					},
-					{
-						opcode: "onPeerRing",
-						blockType: Scratch.BlockType.EVENT,
-						isEdgeActivated: false,
-						text: Scratch.translate("when I get an incoming call"),
-					},
-					{
-						opcode: "newestIncomingCallID",
-						blockType: Scratch.BlockType.REPORTER,
-						text: Scratch.translate("newest incoming call peer ID"),
-					},
-					"---",
-					{
-						blockType: Scratch.BlockType.LABEL,
-						text: "Microphone",
-					},
-					{
-						opcode: "doIHaveMicPerms",
-						blockType: Scratch.BlockType.BOOLEAN,
-						text: Scratch.translate("microphone available?"),
-					},
-					{
-						opcode: "requestMicPerms",
-						blockType: Scratch.BlockType.COMMAND,
-						text: Scratch.translate("request microphone access"),
-					},
-				],
-				menus: {
-					request: {
-						items: [
-							{ text: Scratch.translate("call"), value: 0 },
-							{ text: Scratch.translate("answer"), value: 1 },
-							{ text: Scratch.translate("decline"), value: 2 },
-							{ text: Scratch.translate("hangup"), value: 3 },
-						],
-					},
-				},
-			};
-		}
+    reporter: (opcode, text, args = {}, options = {}) => ({
+      opcode,
+      blockType: Scratch.BlockType.REPORTER,
+      text: Scratch.translate(text),
+      arguments: args,
+      ...options
+    }),
 
-		_callHandler(call) {
-			if (!this.hasMicPerms || this.voiceConnections.has(call.peer)) {
-				call.close();
-				return;
-			}
-			this.ringingPeers.set(call.peer, call);
-			this.handleCall(call.peer, call);
-			Scratch.vm.runtime.startHats("cldeltachat_whenPeerRings");
-		}
+    command: (opcode, text, args = {}, options = {}) => ({
+      opcode,
+      blockType: Scratch.BlockType.COMMAND,
+      text: Scratch.translate(text),
+      arguments: args,
+      ...options
+    }),
 
-		whenPeerRings({ ID }) {
-			ID = Scratch.Cast.toString(ID);
-			return core.isOtherPeerConnected({ ID });
-		}
+    boolean: (opcode, text, args = {}, options = {}) => ({
+      opcode,
+      blockType: Scratch.BlockType.BOOLEAN,
+      text: Scratch.translate(text),
+      arguments: args,
+      ...options
+    }),
 
-		doIHaveMicPerms() {
-			return this.hasMicPerms;
-		}
+    event: (opcode, text, options = {}) => ({
+      opcode,
+      blockType: Scratch.BlockType.EVENT,
+      text: Scratch.translate(text),
+      isEdgeActivated: false,
+      ...options
+    }),
 
-		async requestMicPerms() {
-			if (this.hasMicPerms || this.myVoiceStream) return;
-			if (await Scratch.canRecordAudio()) {
-				await navigator.mediaDevices
-					.getUserMedia({ audio: true })
-					.then((stream) => {
-						this.myVoiceStream = stream;
-						this.hasMicPerms = true;
-					})
-					.catch((e) => {
-						console.warn(`Failed to get microphone permission. ${e}`);
-						this.hasMicPerms = false;
-					});
-			}
-		}
+    button: (text, func, options = {}) => ({
+      blockType: Scratch.BlockType.BUTTON,
+      text: Scratch.translate(text),
+      func,
+      ...options
+    }),
 
-		async doPeer({REQUEST, ID}) {
-			const req = Scratch.Cast.toNumber(REQUEST);
-			const id = Scratch.Cast.toString(ID);
+    label: text => ({
+      blockType: Scratch.BlockType.LABEL,
+      text: Scratch.translate(text)
+    }),
 
-			switch (req) {
-				case 0:
-					console.log("Calling peer " + id);
-					await this.callPeer(id);
-					break;
-				case 1:
-					console.log("Answering peer " + id);
-					await this.answerPeer(id);
-					break;
-				case 2:
-					console.log("Declining peer " + id);
-					await this.declinePeer(id);
-					break;
-				case 3:
-					console.log("Hanging up peer " + id);
-					this.hangupPeerCall(id);
-					break;
-			}
-		}
+    separator: () => '---'
+  }
 
-		async callPeer(ID) {
-			ID = Scratch.Cast.toString(ID);
-			if (!core.isPeerConnected()) return;
-			if (!core.dataConnections.has(ID)) return;
-			if (!this.hasMicPerms) {
-				await this.requestMicPerms();
-				if (!this.hasMicPerms) return;
-			}
-			if (core.voiceConnections.has(ID)) return;
-			const lock_id = "cldeltachat_" + ID + "_call";
-			await navigator.locks.request(
-				lock_id,
-				{ ifAvailable: true },
-				async () => {
-					const call = await core.peer.call(ID, this.myVoiceStream, {
-						metadata: {
-							name: core.name,
-							protocol: "delta", // REQUIRED
-						},
-					});
-					this.handleCall(ID, call);
-				}
-			);
-		}
+  const args = {
+    string: (value, options = {}) => ({
+      type: Scratch.ArgumentType.STRING,
+      defaultValue: value,
+      ...options
+    }),
 
-		hangupPeerCall(ID) {
-			ID = Scratch.Cast.toString(ID);
-			if (this.voiceConnections.has(ID))
-				this.voiceConnections.get(ID).call.close();
-		}
+    number: (value, options = {}) => ({
+      type: Scratch.ArgumentType.NUMBER,
+      defaultValue: value,
+      ...options
+    }),
 
-		async answerPeer(ID) {
-			ID = Scratch.Cast.toString(ID);
-			if (!core.peer) return;
-			if (!this.hasMicPerms) {
-				await this.requestMicPerms();
-				if (!this.hasMicPerms) return;
-			}
-			if (!this.ringingPeers.has(ID)) return;
-			const call = this.ringingPeers.get(ID);
-			const lock_id = "cldelta_" + ID + "_call";
-			await navigator.locks.request(
-				lock_id,
-				{ ifAvailable: true },
-				async () => {
-					call.answer(this.myVoiceStream);
-					this.handleCall(ID, call);
-				}
-			);
-		}
+    boolean: (value, options = {}) => ({
+      type: Scratch.ArgumentType.BOOLEAN,
+      defaultValue: value,
+      ...options
+    })
+  }
 
-		handleCall(id, call) {
-			call.on("stream", (remoteStream) => {
-				if (this.ringingPeers.has(id)) this.ringingPeers.delete(id);
-				const audio = document.createElement("audio");
-				audio.srcObject = remoteStream;
-				audio.autoplay = true;
-				this.voiceConnections.set(id, {
-					call: call,
-					audio: audio,
-				});
-				audio.play();
-			});
+  class CloudLinkDelta_Chat {
+    constructor () {
+      this.core
+      this.ringingPeers = new Map()
+      this.voiceConnections = new Map()
+      this.hasMicPerms = false
+      this.myVoiceStream
+    }
 
-			call.on("close", () => {
-				if (this.ringingPeers.has(id)) {
-					this.ringingPeers.delete(id);
-				} else {
-					this.voiceConnections.delete(id);
-				}
-			});
+    /**
+     * Called when the plugin is registered with the core extension.
+     *
+     * @param {Object} core - The core object of the CLΔ framework.
+     */
+    register (core) {
+      // Implement any additional hooks
+      this.core = core
+      console.log('CLΔ Chat plugin registered.')
+    }
 
-			call.on("error", (err) => {
-				console.warn("Call with peer " + id + " error: " + err);
-			});
-		}
-	}
+    getInfo () {
+      return {
+        id: 'cldeltachat',
+        name: 'CLΔ Chat',
+        menuIconURI: menuIcon,
+        blockIconURI: blockIcon,
+        color1: '#0F7EBD',
+        blocks: [
+          // Control
+          opcodes.label('Control'),
+          opcodes.command('doPeer', '[REQUEST] peer [ID]', {
+            REQUEST: args.number('call', {
+              menu: 'request',
+              acceptReporters: false
+            }),
+            ID: args.string('B')
+          }),
+          opcodes.separator(),
 
-	// Register the plugin
-	const chat = new CloudLinkDelta_Chat();
-	Scratch.extensions.register(chat);
-	Scratch.vm.runtime.ext_cldelta_chat = chat;
+          // Ringer
+          opcodes.label('Ringer'),
+          opcodes.event('whenPeerRings', 'when peer [ID] calls me', {
+            arguments: {
+              ID: args.string('B')
+            }
+          }),
+          opcodes.event('onPeerRing', 'when I get an incoming call'), // TODO: implement
+          opcodes.reporter(
+            'newestIncomingCallID',
+            'newest incoming call peer ID'
+          ),
+          opcodes.separator(),
 
-	// Register plugin with core
-	if (!core.plugins.includes("chat")) {
-		core.plugins.push("chat");
-	}
+          // Mic controls
+          opcodes.label('Microphone'),
+          opcodes.boolean('doIHaveMicPerms', 'microphone available?'),
+          opcodes.command('requestMicPerms', 'request microphone access')
+        ],
+        menus: {
+          request: {
+            items: [
+              { text: Scratch.translate('call'), value: 0 },
+              { text: Scratch.translate('answer'), value: 1 },
+              { text: Scratch.translate('decline'), value: 2 },
+              { text: Scratch.translate('hangup'), value: 3 }
+            ]
+          }
+        }
+      }
+    }
 
-	console.log("CLΔ Chat plugin loaded.");
-})(Scratch);
+    _callHandler (call) {
+      if (!this.core) return
+      if (!this.hasMicPerms || this.voiceConnections.has(call.peer)) {
+        call.close()
+        return
+      }
+      this.ringingPeers.set(call.peer, call)
+      this.handleCall(call.peer, call)
+      Scratch.vm.runtime.startHats('cldeltachat_whenPeerRings')
+    }
+
+    whenPeerRings ({ ID }) {
+      if (!this.core) return false
+      return this.core.isOtherPeerConnected({ ID: Scratch.Cast.toString(ID) })
+    }
+
+    doIHaveMicPerms () {
+      return this.hasMicPerms
+    }
+
+    async requestMicPerms () {
+      if (!this.core) return
+      if (this.hasMicPerms || this.myVoiceStream) return
+      if (await Scratch.canRecordAudio()) {
+        await navigator.mediaDevices
+          .getUserMedia({ audio: true })
+          .then(stream => {
+            this.myVoiceStream = stream
+            this.hasMicPerms = true
+          })
+          .catch(e => {
+            console.warn(`Failed to get microphone permission. ${e}`)
+            this.hasMicPerms = false
+          })
+      }
+    }
+
+    async doPeer ({ REQUEST, ID }) {
+      if (!this.core) return
+      const req = Scratch.Cast.toNumber(REQUEST)
+      const id = Scratch.Cast.toString(ID)
+
+      switch (req) {
+        case 0:
+          console.log('Calling peer ' + id)
+          await this.callPeer(id)
+          break
+        case 1:
+          console.log('Answering peer ' + id)
+          await this.answerPeer(id)
+          break
+        case 2:
+          console.log('Declining peer ' + id)
+          await this.declinePeer(id)
+          break
+        case 3:
+          console.log('Hanging up peer ' + id)
+          this.hangupPeerCall(id)
+          break
+      }
+    }
+
+    async callPeer (ID) {
+      if (!this.core) return
+      ID = Scratch.Cast.toString(ID)
+      if (!this.core.isPeerConnected()) return
+      if (!this.core.dataConnections.has(ID)) return
+      if (!this.hasMicPerms) {
+        await this.requestMicPerms()
+        if (!this.hasMicPerms) return
+      }
+      if (this.core.voiceConnections.has(ID)) return
+      const lock_id = 'cldeltachat_' + ID + '_call'
+      await navigator.locks.request(
+        lock_id,
+        { ifAvailable: true },
+        async () => {
+          const call = await this.core.peer.call(ID, this.myVoiceStream, {
+            metadata: {
+              name: this.core.name,
+              protocol: 'delta' // REQUIRED
+            }
+          })
+          this.handleCall(ID, call)
+        }
+      )
+    }
+
+    hangupPeerCall (ID) {
+      if (!this.core) return
+      ID = Scratch.Cast.toString(ID)
+      if (this.voiceConnections.has(ID))
+        this.voiceConnections.get(ID).call.close()
+    }
+
+    async answerPeer (ID) {
+      if (!this.core) return
+      ID = Scratch.Cast.toString(ID)
+      if (!this.core.peer) return
+      if (!this.hasMicPerms) {
+        await this.requestMicPerms()
+        if (!this.hasMicPerms) return
+      }
+      if (!this.ringingPeers.has(ID)) return
+      const call = this.ringingPeers.get(ID)
+      const lock_id = 'cldelta_' + ID + '_call'
+      await navigator.locks.request(
+        lock_id,
+        { ifAvailable: true },
+        async () => {
+          call.answer(this.myVoiceStream)
+          this.handleCall(ID, call)
+        }
+      )
+    }
+
+    handleCall (id, call) {
+      if (!this.core) return
+      call.on('stream', remoteStream => {
+        if (this.ringingPeers.has(id)) this.ringingPeers.delete(id)
+        const audio = document.createElement('audio')
+        audio.srcObject = remoteStream
+        audio.autoplay = true
+        this.voiceConnections.set(id, {
+          call: call,
+          audio: audio
+        })
+        audio.play()
+      })
+
+      call.on('close', () => {
+        if (this.ringingPeers.has(id)) {
+          this.ringingPeers.delete(id)
+        } else {
+          this.voiceConnections.delete(id)
+        }
+      })
+
+      call.on('error', err => {
+        console.warn('Call with peer ' + id + ' error: ' + err)
+      })
+    }
+  }
+
+  // Register the plugin
+  const chat = new CloudLinkDelta_Chat()
+  Scratch.extensions.register(chat)
+  Scratch.vm.runtime.ext_cldelta_chat = chat
+  console.log('CLΔ Chat plugin loaded.')
+
+  // Either immediately register, or defer
+  const core = Scratch.vm.runtime.ext_cldelta_core
+  if (core) {
+    chat.register(core)
+  } else {
+    Scratch.vm.runtime.ext_cldelta_pluginloader.push(chat)
+  }
+})(Scratch)
