@@ -171,7 +171,11 @@
     register (core) {
       // Implement any additional hooks
       this.core = core
-      console.log('CLΔ Chat plugin registered.')
+
+      if (!core.plugins.includes('chat')) {
+        core.plugins.push('chat')
+        console.log('CLΔ Chat plugin registered.')
+      }
     }
 
     getInfo () {
