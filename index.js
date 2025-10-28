@@ -189,10 +189,7 @@
           // Control
           opcodes.label('Control'),
           opcodes.command('doPeer', '[REQUEST] peer [ID]', {
-            REQUEST: args.number('call', {
-              menu: 'request',
-              acceptReporters: false
-            }),
+            REQUEST: args.string('call', { menu: 'request' }),
             ID: args.string('B')
           }),
           opcodes.separator(),
@@ -219,10 +216,10 @@
         menus: {
           request: {
             items: [
-              { text: Scratch.translate('call'), value: 0 },
-              { text: Scratch.translate('answer'), value: 1 },
-              { text: Scratch.translate('decline'), value: 2 },
-              { text: Scratch.translate('hangup'), value: 3 }
+              Scratch.translate('call'),
+              Scratch.translate('answer'),
+              Scratch.translate('decline'),
+              Scratch.translate('hangup')
             ]
           }
         }
@@ -268,23 +265,21 @@
 
     async doPeer ({ REQUEST, ID }) {
       if (!this.core) return
-      const req = Scratch.Cast.toNumber(REQUEST)
       const id = Scratch.Cast.toString(ID)
-
-      switch (req) {
-        case 0:
+      switch (Scratch.Cast.toString(REQUEST)) {
+        case 'call':
           console.log('Calling peer ' + id)
           await this.callPeer(id)
           break
-        case 1:
+        case 'answer':
           console.log('Answering peer ' + id)
           await this.answerPeer(id)
           break
-        case 2:
+        case 'decline':
           console.log('Declining peer ' + id)
           await this.declinePeer(id)
           break
-        case 3:
+        case 'hangup':
           console.log('Hanging up peer ' + id)
           this.hangupPeerCall(id)
           break
@@ -370,6 +365,10 @@
       call.on('error', err => {
         console.warn('Call with peer ' + id + ' error: ' + err)
       })
+    }
+
+    newestIncomingCallID () {
+      return 'TODO...'
     }
   }
 
