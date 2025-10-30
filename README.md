@@ -1,4 +1,4 @@
-![CloudLink Delta](https://github.com/user-attachments/assets/aa2ac9e0-4187-44c4-84be-069242d2b6dc)
+![chat](https://github.com/user-attachments/assets/d5dfc8ba-0700-4c36-94b9-a274258ca3e9)
 
 # CLΔ Chat plugin library.
 Plugin to enable voice chat features with CLΔ Core. 
