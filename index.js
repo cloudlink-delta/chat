@@ -290,7 +290,6 @@
       if (!this.core) return
       ID = Scratch.Cast.toString(ID)
       if (!this.core.isPeerConnected()) return
-      if (!this.core.dataConnections.has(ID)) return
       if (!this.hasMicPerms) {
         await this.requestMicPerms()
         if (!this.hasMicPerms) return
