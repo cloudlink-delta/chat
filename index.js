@@ -161,6 +161,7 @@
       this.voiceConnections = new Map()
       this.hasMicPerms = false
       this.myVoiceStream
+      this.newestIncomingCallIDValue = ''
     }
 
     /**
@@ -201,7 +202,7 @@
               ID: args.string('B')
             }
           }),
-          opcodes.event('onPeerRing', 'when I get an incoming call'), // TODO: implement
+          opcodes.event('onPeerRing', 'when I get an incoming call'),
           opcodes.reporter(
             'newestIncomingCallID',
             'newest incoming call peer ID'
@@ -232,9 +233,11 @@
         call.close()
         return
       }
+      this.newestIncomingCallIDValue = call.peer
       this.ringingPeers.set(call.peer, call)
       this.handleCall(call.peer, call)
       Scratch.vm.runtime.startHats('cldeltachat_whenPeerRings')
+      Scratch.vm.runtime.startHats('cldeltachat_onPeerRing')
     }
 
     whenPeerRings ({ ID }) {
@@ -265,7 +268,7 @@
 
     async doPeer ({ REQUEST, ID }) {
       if (!this.core) return
-      const id = Scratch.Cast.toString(ID)
+      const id = this.core.resolvePeerId(Scratch.Cast.toString(ID))
       switch (Scratch.Cast.toString(REQUEST)) {
         case 'call':
           console.log('Calling peer ' + id)
@@ -288,14 +291,14 @@
 
     async callPeer (ID) {
       if (!this.core) return
-      ID = Scratch.Cast.toString(ID)
+      const peerId = this.core.resolvePeerId(Scratch.Cast.toString(ID))
       if (!this.core.isPeerConnected()) return
       if (!this.hasMicPerms) {
         await this.requestMicPerms()
         if (!this.hasMicPerms) return
       }
-      if (this.core.voiceConnections.has(ID)) return
-      const lock_id = 'cldeltachat_' + ID + '_call'
+      if (this.voiceConnections.has(peerId)) return
+      const lock_id = 'cldeltachat_' + peerId + '_call'
       await navigator.locks.request(
         lock_id,
         { ifAvailable: true },
@@ -306,35 +309,35 @@
               protocol: 'delta' // REQUIRED
             }
           })
-          this.handleCall(ID, call)
+          this.handleCall(peerId, call)
         }
       )
     }
 
     hangupPeerCall (ID) {
       if (!this.core) return
-      ID = Scratch.Cast.toString(ID)
-      if (this.voiceConnections.has(ID))
-        this.voiceConnections.get(ID).call.close()
+      const peerId = this.core.resolvePeerId(Scratch.Cast.toString(ID))
+      if (this.voiceConnections.has(peerId))
+        this.voiceConnections.get(peerId).call.close()
     }
 
     async answerPeer (ID) {
       if (!this.core) return
-      ID = Scratch.Cast.toString(ID)
+      const peerId = this.core.resolvePeerId(Scratch.Cast.toString(ID))
       if (!this.core.peer) return
       if (!this.hasMicPerms) {
         await this.requestMicPerms()
         if (!this.hasMicPerms) return
       }
-      if (!this.ringingPeers.has(ID)) return
-      const call = this.ringingPeers.get(ID)
-      const lock_id = 'cldelta_' + ID + '_call'
+      if (!this.ringingPeers.has(peerId)) return
+      const call = this.ringingPeers.get(peerId)
+      const lock_id = 'cldelta_' + peerId + '_call'
       await navigator.locks.request(
         lock_id,
         { ifAvailable: true },
         async () => {
           call.answer(this.myVoiceStream)
-          this.handleCall(ID, call)
+          this.handleCall(peerId, call)
         }
       )
     }
@@ -367,7 +370,7 @@
     }
 
     newestIncomingCallID () {
-      return 'TODO...'
+      return this.newestIncomingCallIDValue
     }
   }
 
