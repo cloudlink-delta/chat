@@ -5,29 +5,29 @@
 // License: MIT
 
 /*
-	CloudLink Delta Chat Plugin
+  CloudLink Delta Chat Plugin
 
-	MIT License
+  MIT License
 
-	Copyright (C) 2025 CloudLink Delta.
+  Copyright (C) 2025 CloudLink Delta.
 
-	Permission is hereby granted, free of charge, to any person obtaining a copy
-	of this software and associated documentation files (the "Software"), to deal
-	in the Software without restriction, including without limitation the rights
-	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-	copies of the Software, and to permit persons to whom the Software is
-	furnished to do so, subject to the following conditions:
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
 
-	The above copyright notice and this permission notice shall be included in all
-	copies or substantial portions of the Software.
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
 
-	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-	SOFTWARE.
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
 */
 
 ;(function (Scratch) {
@@ -68,15 +68,15 @@
   }
 
   /*
-		Block utilities for creating blocks with less code.
-		Based on Rotur.js by Mistium
-		https://extensions.mistium.com/featured/Rotur.js
+    Block utilities for creating blocks with less code.
+    Based on Rotur.js by Mistium
+    https://extensions.mistium.com/featured/Rotur.js
 
-		MPL-2.0
-		This Source Code is subject to the terms of the Mozilla Public License, v2.0,
-		If a copy of the MPL was not distributed with this file,
-		Then you can obtain one at https://mozilla.org/MPL/2.0/
-	*/
+    MPL-2.0
+    This Source Code is subject to the terms of the Mozilla Public License, v2.0,
+    If a copy of the MPL was not distributed with this file,
+    Then you can obtain one at https://mozilla.org/MPL/2.0/
+  */
   // Defines a set of block types
   const opcodes = {
     conditional: (opcode, text, options = {}) => ({
@@ -161,8 +161,12 @@
       this.voiceConnections = new Map()
       this.hasMicPerms = false
       this.myVoiceStream
+      this.audioContext
       this.newestIncomingCallIDValue = ''
       this.pendingOutgoingCalls = new Map()
+      this.incomingListTarget = null
+      this.outgoingListTarget = null
+      this.activeListTarget = null
     }
 
     /**
@@ -171,10 +175,10 @@
      * @param {Object} core - The core object of the CLΔ framework.
      */
     register (core) {
-      const self = this;
-      self.core = core
-      self.core.registerPlugin(this)
-      self.core.callbacks.bind('peer_call', this._handleIncomingMediaCall.bind(this))
+
+      this.core = core
+      this.core.registerPlugin(this)
+      this.core.callbacks.bind('peer_call', this._handleIncomingMediaCall.bind(this))
 
       if (!core.plugins.includes('chat')) {
         core.plugins.push('chat')
@@ -205,6 +209,13 @@
             REQUEST: args.string('call', { menu: 'request' }),
             ID: args.string('B')
           }),
+          opcodes.command('bindListOutput', 'output [MODE] to list [LIST]', {
+            MODE: args.string('incoming calls', { menu: 'callMode' }),
+            LIST: args.string('my list', {
+              acceptsReporters: true,
+              variableType: 'list'
+            })
+          }),
           opcodes.separator(),
 
           // Ringer
@@ -224,7 +235,16 @@
           // Mic controls
           opcodes.label('Microphone'),
           opcodes.boolean('doIHaveMicPerms', 'microphone available?'),
-          opcodes.command('requestMicPerms', 'request microphone access')
+          opcodes.boolean('isMicMuted', 'is microphone muted?'),
+          opcodes.command('requestMicPerms', 'request microphone access'),
+          opcodes.command('setMicMuted', 'set microphone muted to [MUTED]', { MUTED: args.boolean(true) }),
+          opcodes.separator(),
+
+          // Audio Properties
+          opcodes.label('Audio Properties'),
+          opcodes.reporter('getVoiceProperty', 'player [ID] voice [PROP]', { ID: args.string('B'), PROP: args.string('volume', { menu: 'voiceProperty' }) }),
+          opcodes.command('setVoiceProperty', 'set player [ID] voice [PROP] to [VALUE]', { ID: args.string('B'), PROP: args.string('volume', { menu: 'voiceProperty' }), VALUE: args.number(100) }),
+          opcodes.command('changeVoiceProperty', 'change player [ID] voice [PROP] by [STEPS]', { ID: args.string('B'), PROP: args.string('volume', { menu: 'voiceProperty' }), STEPS: args.number(10) })
         ],
         menus: {
           request: {
@@ -234,6 +254,16 @@
               Scratch.translate('decline'),
               Scratch.translate('hangup')
             ]
+          },
+          callMode: {
+            items: [
+              Scratch.translate('incoming calls'),
+              Scratch.translate('outgoing calls'),
+              Scratch.translate('active calls')
+            ]
+          },
+          voiceProperty: {
+            items: ['volume', 'x', 'y', 'z']
           }
         }
       }
@@ -265,107 +295,152 @@
       }
     }
 
+    setMicMuted ({ MUTED }) {
+      if (!this.myVoiceStream) return
+      const muted = Scratch.Cast.toBoolean(MUTED)
+      this.myVoiceStream.getAudioTracks().forEach(track => {
+        track.enabled = !muted
+      })
+    }
+
+    isMicMuted () {
+      if (!this.myVoiceStream) return false
+      const tracks = this.myVoiceStream.getAudioTracks()
+      if (tracks.length === 0) return false
+      return !tracks[0].enabled
+    }
+
     async doPeer ({ REQUEST, ID }) {
-      const self = this;
       if (!this.core) return
       const peerId = this.core.resolvePeerId(Scratch.Cast.toString(ID))
       const requestType = Scratch.Cast.toString(REQUEST)
 
       switch (requestType) {
         case 'call': {
-          console.log('[CLΔ Chat] Calling peer ' + self.core._prettyPeer(peerId))
+          console.log('[CLΔ Chat] Calling peer ' + this.core._prettyPeer(peerId))
           if (!this.core.isOtherPeerConnected({ ID: peerId })) {
-            console.warn(`[CLΔ Chat] Cannot call peer ${self.core._prettyPeer(peerId)}: not connected.`)
+            console.warn(`[CLΔ Chat] Cannot call peer ${this.core._prettyPeer(peerId)}: not connected.`)
             return
           }
           if (!this.hasMicPerms) {
             await this.requestMicPerms()
             if (!this.hasMicPerms) return
           }
-          if (
-            this.voiceConnections.has(peerId) ||
-            this.pendingOutgoingCalls.has(peerId)
-          ) {
-            console.warn(
-              `[CLΔ Chat] Already in a call or calling peer ${self.core._prettyPeer(peerId)}.`
-            )
-            return
-          }
-          this.pendingOutgoingCalls.set(peerId, true)
-          this.core._sendMessageToPeer('', peerId, 'default', 'CALL')
+          await navigator.locks.request('cldeltachat_state', async () => {
+            if (
+              this.voiceConnections.has(peerId) ||
+              this.pendingOutgoingCalls.has(peerId)
+            ) {
+              console.warn(`[CLΔ Chat] Already in a call or calling peer ${this.core._prettyPeer(peerId)}.`)
+              return
+            }
+            this.pendingOutgoingCalls.set(peerId, true)
+            this.core._sendMessageToPeer('', peerId, 'default', 'CALL')
+            this._updateLists()
+          })
           break
         }
         case 'answer': {
-          console.log('[CLΔ Chat] Answering peer ' + self.core._prettyPeer(peerId))
-          if (!this.ringingPeers.has(peerId)) {
-            console.warn(`[CLΔ Chat] No incoming call from ${self.core._prettyPeer(peerId)} to answer.`)
-            return
-          }
+          console.log('[CLΔ Chat] Answering peer ' + this.core._prettyPeer(peerId))
           if (!this.hasMicPerms) {
             await this.requestMicPerms()
             if (!this.hasMicPerms) return
           }
-          this.ringingPeers.delete(peerId)
-          this.core._sendMessageToPeer('', peerId, 'default', 'ANSWER')
+          await navigator.locks.request('cldeltachat_state', async () => {
+            if (!this.ringingPeers.has(peerId)) {
+              console.warn(`[CLΔ Chat] No incoming call from ${this.core._prettyPeer(peerId)} to answer.`)
+              return
+            }
+            this.ringingPeers.delete(peerId)
+            this.core._sendMessageToPeer('', peerId, 'default', 'ANSWER')
+            this._updateLists()
+          })
           break
         }
         case 'decline': {
-          console.log('[CLΔ Chat] Declining peer ' + self.core._prettyPeer(peerId))
-          if (!this.ringingPeers.has(peerId)) return
-          this.ringingPeers.delete(peerId)
-          this.core._sendMessageToPeer('', peerId, 'default', 'DECLINE')
+          console.log('[CLΔ Chat] Declining peer ' + this.core._prettyPeer(peerId))
+          await navigator.locks.request('cldeltachat_state', async () => {
+            if (!this.ringingPeers.has(peerId)) return
+            this.ringingPeers.delete(peerId)
+            if (this.newestIncomingCallIDValue === this.core._prettyPeer(peerId)) {
+              this.newestIncomingCallIDValue = ''
+            }
+            this.core._sendMessageToPeer('', peerId, 'default', 'DECLINE')
+            this._updateLists()
+          })
           break
         }
         case 'hangup': {
-          console.log('[CLΔ Chat] Hanging up peer ' + self.core._prettyPeer(peerId))
+          console.log('[CLΔ Chat] Hanging up peer ' + this.core._prettyPeer(peerId))
           this.core._sendMessageToPeer('', peerId, 'default', 'HANGUP')
-          this._hangupPeerCall(peerId) // Hang up locally as well
+          await this._hangupPeerCall(peerId) // Hang up locally as well
           break
         }
       }
     }
 
-    _hangupPeerCall (ID) {
+    async _hangupPeerCall (ID) {
       if (!this.core) return
       const peerId = Scratch.Cast.toString(ID)
-      if (this.voiceConnections.has(peerId)) {
-        this.voiceConnections.get(peerId).call.close()
-      }
-      // Also clean up pending/ringing states
-      if (this.ringingPeers.has(peerId)) {
-        this.ringingPeers.delete(peerId)
-      }
-      if (this.pendingOutgoingCalls.has(peerId)) {
-        this.pendingOutgoingCalls.delete(peerId)
-      }
+      await navigator.locks.request('cldeltachat_state', async () => {
+        if (this.voiceConnections.has(peerId)) {
+          const connData = this.voiceConnections.get(peerId);
+          if (connData.source) connData.source.disconnect();
+          if (connData.panner) connData.panner.disconnect();
+          if (connData.gain) connData.gain.disconnect();
+          connData.call.close()
+          this.voiceConnections.delete(peerId);
+        }
+        // Also clean up pending/ringing states
+        if (this.ringingPeers.has(peerId)) {
+          this.ringingPeers.delete(peerId)
+        }
+        if (this.pendingOutgoingCalls.has(peerId)) {
+          this.pendingOutgoingCalls.delete(peerId)
+        }
+        if (this.newestIncomingCallIDValue === this.core._prettyPeer(peerId)) {
+          this.newestIncomingCallIDValue = ''
+        }
+        this._updateLists()
+      })
     }
 
-    _handleCallSignal (packet, fromPeerId) {
-      const self = this;
+    async _handleCallSignal (packet, fromPeerId) {
       if (!this.core) return
-      // Ignore if already in a call or ringing from this peer
-      if (
-        this.voiceConnections.has(fromPeerId) ||
-        this.ringingPeers.has(fromPeerId)
-      ) {
-        return
-      }
-      // Try to use a pretty value, otherwise use the default ID
-      this.newestIncomingCallIDValue = self.core._prettyPeer(fromPeerId)
-      this.ringingPeers.set(fromPeerId, true) // Store that a call is incoming
-      console.log(`[CLΔ Chat] Incoming call from ${self.core._prettyPeer(fromPeerId)}...`)
-      Scratch.vm.runtime.startHats('cldeltachat_whenPeerRings', { ID: fromPeerId })
-      Scratch.vm.runtime.startHats('cldeltachat_whenPeerRings')
-      Scratch.vm.runtime.startHats('cldeltachat_onPeerRing')
+      await navigator.locks.request('cldeltachat_state', async () => {
+        // Ignore if already in a call or ringing from this peer
+        if (
+          this.voiceConnections.has(fromPeerId) ||
+          this.ringingPeers.has(fromPeerId)
+        ) {
+          return
+        }
+        // Try to use a pretty value, otherwise use the default ID
+        this.newestIncomingCallIDValue = this.core._prettyPeer(fromPeerId)
+        this.ringingPeers.set(fromPeerId, true) // Store that a call is incoming
+        this._updateLists()
+        console.log(`[CLΔ Chat] Incoming call from ${this.core._prettyPeer(fromPeerId)}...`)
+        Scratch.vm.runtime.startHats('cldeltachat_whenPeerRings', { ID: fromPeerId })
+        Scratch.vm.runtime.startHats('cldeltachat_whenPeerRings')
+        Scratch.vm.runtime.startHats('cldeltachat_onPeerRing')
+      })
     }
 
-    async _handleAnswerSignal (packet, fromPeerId) {
-      const self = this;
-      if (!this.core || !this.pendingOutgoingCalls.has(fromPeerId)) return
+    async _handleAnswerSignal (_, fromPeerId) {
+      if (!this.core) return
 
-      this.pendingOutgoingCalls.delete(fromPeerId)
+      let shouldAnswer = false
+      await navigator.locks.request('cldeltachat_state', async () => {
+        if (this.pendingOutgoingCalls.has(fromPeerId)) {
+          this.pendingOutgoingCalls.delete(fromPeerId)
+          this._updateLists()
+          shouldAnswer = true
+        }
+      })
 
-      console.log(`[CLΔ Chat] Answering call to ${self.core._prettyPeer(fromPeerId)}...`)
+      if (!shouldAnswer) return
+
+      console.log(`[CLΔ Chat] Answering call to ${this.core._prettyPeer(fromPeerId)}...`)
 
       // Now that it's answered, initiate the actual PeerJS media call
       const lock_id = 'cldeltachat_' + fromPeerId + '_call'
@@ -380,22 +455,25 @@
       })
     }
 
-    _handleDeclineSignal (packet, fromPeerId) {
-      const self = this;
-      if (this.pendingOutgoingCalls.has(fromPeerId)) {
-        console.log(`[CLΔ Chat] Call with ${self.core._prettyPeer(fromPeerId)} was declined.`)
-        this.pendingOutgoingCalls.delete(fromPeerId)
-      }
+    async _handleDeclineSignal (_, fromPeerId) {
+      await navigator.locks.request('cldeltachat_state', async () => {
+        if (this.pendingOutgoingCalls.has(fromPeerId)) {
+          console.log(`[CLΔ Chat] Call with ${this.core._prettyPeer(fromPeerId)} was declined.`)
+          this.pendingOutgoingCalls.delete(fromPeerId)
+          if (this.newestIncomingCallIDValue === this.core._prettyPeer(fromPeerId)) {
+            this.newestIncomingCallIDValue = ''
+          }
+          this._updateLists()
+        }
+      })
     }
 
-    _handleHangupSignal (packet, fromPeerId) {
-      const self = this;
-      console.log(`[CLΔ Chat] Call with ${self.core._prettyPeer(fromPeerId)} hanging up...`)
-      this._hangupPeerCall(fromPeerId)
+    async _handleHangupSignal (_, fromPeerId) {
+      console.log(`[CLΔ Chat] Call with ${this.core._prettyPeer(fromPeerId)} hanging up...`)
+      await this._hangupPeerCall(fromPeerId)
     }
 
     _handleIncomingMediaCall (call) {
-      const self = this;
       if (!this.hasMicPerms) {
         console.warn(
           '[CLΔ Chat] Received a media call but have no mic permissions. Closing.'
@@ -409,57 +487,163 @@
     }
 
     _handleCall (id, call) {
-      const self = this;
-      if (!self.core) return
-      call.on('stream', remoteStream => {
-        // Clean up any lingering ringing/pending states
-        if (this.ringingPeers.has(id)) this.ringingPeers.delete(id)
-        if (this.pendingOutgoingCalls.has(id)) this.pendingOutgoingCalls.delete(id)
-
-        const audio = document.createElement('audio')
-        audio.srcObject = remoteStream
-        audio.autoplay = true
-        this.voiceConnections.set(id, {
-          call: call,
-          audio: audio
+      if (!this.core) return
+      call.on('stream', async remoteStream => {
+        await navigator.locks.request('cldeltachat_state', async () => {
+          // Clean up any lingering ringing/pending states
+          if (this.ringingPeers.has(id)) this.ringingPeers.delete(id)
+          if (this.pendingOutgoingCalls.has(id)) this.pendingOutgoingCalls.delete(id)
+  
+          // Initialize Audio Context on demand
+          if (!this.audioContext) {
+              this.audioContext = Scratch.vm.runtime.audioEngine.audioContext;
+              if (!this.audioContext) {
+                  console.error("[CLΔ Chat] Audio context not found or not yet initialized!");
+                  return;
+              }
+          }
+  
+          const source = this.audioContext.createMediaStreamSource(remoteStream);
+          
+          const panner = this.audioContext.createPanner();
+          panner.panningModel = "HRTF";
+          panner.distanceModel = "inverse";
+          panner.refDistance = 1;
+          panner.maxDistance = 10000;
+          panner.rolloffFactor = 1;
+          panner.coneInnerAngle = 360;
+          panner.coneOuterAngle = 0;
+          panner.coneOuterGain = 0;
+          panner.positionX.value = 0;
+          panner.positionY.value = 0;
+          panner.positionZ.value = 0;
+  
+          const gain = this.audioContext.createGain();
+          gain.gain.value = 1; // Default to 100% volume
+  
+          source.connect(panner);
+          panner.connect(gain);
+          gain.connect(this.audioContext.destination);
+  
+          this.voiceConnections.set(id, {
+            call: call,
+            source: source,
+            panner: panner,
+            gain: gain,
+            stream: remoteStream
+          })
+  
+          this._updateLists()
+  
+          if (this.audioContext.state === "suspended") {
+              this.audioContext.resume();
+          }
+  
+          console.log(
+            '[CLΔ Chat] Call with peer ' + this.core._prettyPeer(id) + ' started (3D Audio Routing).'
+          )
         })
-        // It's good practice to append the audio element to the body to ensure it plays in all browsers,
-        // even if it's not visible.
-        audio.style.display = 'none'
-        document.body.appendChild(audio)
-        audio.play().catch(e => console.error('[CLΔ Chat] Audio play failed:', e))
-
-        console.log(
-          '[CLΔ Chat] Call with peer ' + self.core._prettyPeer(id) + ' started.'
-        )
       })
 
       call.on('close', () => {
-        // Clean up all states related to this peer
-        if (this.ringingPeers.has(id)) this.ringingPeers.delete(id)
-        if (this.pendingOutgoingCalls.has(id)) this.pendingOutgoingCalls.delete(id)
-        if (this.voiceConnections.has(id)) {
-          const connData = this.voiceConnections.get(id)
-          if (connData.audio) {
-            connData.audio.pause()
-            connData.audio.srcObject = null
-            connData.audio.remove() // Remove from DOM
-          }
-          this.voiceConnections.delete(id)
-          console.log(
-            '[CLΔ Chat] Call with peer ' + self.core._prettyPeer(id) + ' ended.'
-          )
-        }
+        this._hangupPeerCall(id)
+        console.log(
+            '[CLΔ Chat] Call with peer ' + this.core._prettyPeer(id) + ' ended.'
+        )
       })
 
       call.on('error', err => {
-        console.warn('[CLΔ Chat] Call with peer ' + self.core._prettyPeer(id) + ' error: ' + err)
+        console.warn('[CLΔ Chat] Call with peer ' + this.core._prettyPeer(id) + ' error: ' + err)
         this._hangupPeerCall(id) // Use the main cleanup function
       })
     }
 
+    async bindListOutput({ MODE, LIST }, util) {
+      const listName = Scratch.Cast.toString(LIST)
+      const list = util.target.lookupVariableByNameAndType(listName, 'list')
+      if (!list) {
+        console.warn(`[CLΔ Chat] Could not find list named: ${listName}`)
+        return
+      }
+      
+      const mode = Scratch.Cast.toString(MODE)
+      await navigator.locks.request('cldeltachat_state', async () => {
+        if (mode === 'incoming calls') {
+          this.incomingListTarget = list
+        } else if (mode === 'outgoing calls') {
+          this.outgoingListTarget = list
+        } else if (mode === 'active calls') {
+          this.activeListTarget = list
+        }
+        
+        this._updateLists()
+      })
+    }
+
+    _updateLists () {
+      if (!this.core) return
+      if (this.incomingListTarget) {
+        this.incomingListTarget.value = Array.from(this.ringingPeers.keys()).map(id => this.core._prettyPeer(id))
+        this.incomingListTarget._monitorUpToDate = false
+      }
+      if (this.outgoingListTarget) {
+        this.outgoingListTarget.value = Array.from(this.pendingOutgoingCalls.keys()).map(id => this.core._prettyPeer(id))
+        this.outgoingListTarget._monitorUpToDate = false
+      }
+      if (this.activeListTarget) {
+        this.activeListTarget.value = Array.from(this.voiceConnections.keys()).map(id => this.core._prettyPeer(id))
+        this.activeListTarget._monitorUpToDate = false
+      }
+    }
+
     newestIncomingCallID () {
       return this.newestIncomingCallIDValue
+    }
+
+    async getVoiceProperty({ ID, PROP }) {
+        let value = 0;
+        await navigator.locks.request('cldeltachat_state', async () => {
+            if (!this.core) return;
+            const peerId = this.core.resolvePeerId(Scratch.Cast.toString(ID));
+            if (!this.voiceConnections.has(peerId)) return;
+            const prop = Scratch.Cast.toString(PROP).toLowerCase();
+            const conn = this.voiceConnections.get(peerId);
+            if (prop === 'volume') value = (conn.gain.gain.value * 100).toFixed(2);
+            else if (prop === 'x') value = conn.panner.positionX.value;
+            else if (prop === 'y') value = conn.panner.positionY.value;
+            else if (prop === 'z') value = conn.panner.positionZ.value;
+        });
+        return value;
+    }
+
+    async setVoiceProperty({ ID, PROP, VALUE }) {
+        await navigator.locks.request('cldeltachat_state', async () => {
+            if (!this.core) return;
+            const peerId = this.core.resolvePeerId(Scratch.Cast.toString(ID));
+            if (!this.voiceConnections.has(peerId)) return;
+            const prop = Scratch.Cast.toString(PROP).toLowerCase();
+            const conn = this.voiceConnections.get(peerId);
+            const val = Scratch.Cast.toNumber(VALUE);
+            if (prop === 'volume') conn.gain.gain.value = Math.max(0, val / 100);
+            else if (prop === 'x') conn.panner.positionX.value = val;
+            else if (prop === 'y') conn.panner.positionY.value = val;
+            else if (prop === 'z') conn.panner.positionZ.value = val;
+        });
+    }
+
+    async changeVoiceProperty({ ID, PROP, STEPS }) {
+        await navigator.locks.request('cldeltachat_state', async () => {
+            if (!this.core) return;
+            const peerId = this.core.resolvePeerId(Scratch.Cast.toString(ID));
+            if (!this.voiceConnections.has(peerId)) return;
+            const prop = Scratch.Cast.toString(PROP).toLowerCase();
+            const conn = this.voiceConnections.get(peerId);
+            const steps = Scratch.Cast.toNumber(STEPS);
+            if (prop === 'volume') conn.gain.gain.value = Math.max(0, conn.gain.gain.value + (steps / 100));
+            else if (prop === 'x') conn.panner.positionX.value += steps;
+            else if (prop === 'y') conn.panner.positionY.value += steps;
+            else if (prop === 'z') conn.panner.positionZ.value += steps;
+        });
     }
   }
 
